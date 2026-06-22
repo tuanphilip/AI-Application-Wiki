@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI20K · Cohort 2 — Tổng Quan Chương Trình</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0b0905;
+    --bg2:#14100a;
+    --gold:#f5a623;
+    --gold-bright:#ffc24b;
+    --gold-soft:#ffd97d;
+    --gold-deep:#b9750a;
+    --ink:#f7f0e2;
+    --muted:#b9a784;
+    --muted-2:#8a7c60;
+    --line:rgba(245,166,35,.16);
+    --card:rgba(255,182,62,.045);
+    --card-bd:rgba(245,166,35,.18);
+    --grad:linear-gradient(118deg,#ffe09a 0%,#ffc24b 38%,#f5a623 64%,#e07b00 100%);
+    --glow:0 0 40px rgba(245,166,35,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Be Vietnam Pro',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- ambient background ---------- */
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .bg::before{ /* warm radial glow */
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(1200px 700px at 78% -8%, rgba(255,170,40,.22), transparent 60%),
+      radial-gradient(900px 600px at 10% 110%, rgba(185,117,10,.16), transparent 60%),
+      linear-gradient(160deg,#0b0905 0%,#100c06 50%,#0a0804 100%);
+  }
+  .bg .grid{ /* circuit grid */
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(245,166,35,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(245,166,35,.06) 1px,transparent 1px);
+    background-size:54px 54px;
+    -webkit-mask:radial-gradient(110% 90% at 75% 0%,#000 25%,transparent 78%);
+            mask:radial-gradient(110% 90% at 75% 0%,#000 25%,transparent 78%);
+    opacity:.9;
+  }
+  .bg .traces{position:absolute;inset:0;opacity:.5}
+
+  /* ---------- deck / slides ---------- */
+  .deck{position:relative;z-index:2;height:100vh;width:100vw}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(36px,6vw,104px);
+    opacity:0;visibility:hidden;
+    transform:translateY(14px) scale(.995);
+    transition:opacity .5s ease,transform .5s ease,visibility .5s;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none}
+  .slide.prev{transform:translateY(-14px) scale(.995)}
+
+  /* slide chrome */
+  .kicker{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--gold-bright);
+    margin-bottom:18px;
+  }
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+  .kicker .num{
+    color:var(--bg);background:var(--grad);font-weight:700;
+    padding:3px 9px;border-radius:6px;letter-spacing:.06em;
+  }
+  h1{font-weight:800;line-height:1.04;letter-spacing:-.02em}
+  h2{font-size:clamp(28px,3.6vw,52px);font-weight:800;line-height:1.08;letter-spacing:-.02em;margin-bottom:8px}
+  .lead{color:var(--muted);font-size:clamp(15px,1.45vw,20px);max-width:60ch;line-height:1.55}
+  .gold{
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .rule{height:3px;width:74px;border-radius:3px;background:var(--grad);margin:14px 0 26px;box-shadow:var(--glow)}
+
+  /* reveal stagger */
+  .slide.active .r{animation:rise .62s cubic-bezier(.2,.7,.2,1) both}
+  .slide.active .r:nth-child(1){animation-delay:.05s}
+  .slide.active .r:nth-child(2){animation-delay:.12s}
+  .slide.active .r:nth-child(3){animation-delay:.19s}
+  .slide.active .r:nth-child(4){animation-delay:.26s}
+  .slide.active .r:nth-child(5){animation-delay:.33s}
+  .slide.active .r:nth-child(6){animation-delay:.40s}
+  @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+  /* ---------- title slide ---------- */
+  #s-title{justify-content:center;align-items:flex-start}
+  .hero-wrap{position:relative;width:100%;max-width:1180px;margin:0 auto}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:12px;
+    font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--gold-bright);margin-bottom:26px;
+    border:1px solid var(--card-bd);padding:9px 16px;border-radius:99px;
+    background:rgba(245,166,35,.05);
+  }
+  #s-title h1{font-size:clamp(48px,9.2vw,140px)}
+  .title-sub{
+    margin-top:10px;font-size:clamp(20px,3vw,40px);font-weight:600;color:var(--ink);
+  }
+  .title-desc{margin-top:28px;color:var(--muted);font-size:clamp(15px,1.5vw,20px);max-width:54ch;line-height:1.6}
+  .title-meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:40px}
+  .title-meta .m{display:flex;flex-direction:column;gap:2px}
+  .title-meta .m b{font-size:clamp(22px,2.6vw,34px);font-weight:800;line-height:1}
+  .title-meta .m span{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
+  .chip{ /* glowing chip motif */
+    position:absolute;right:-10px;top:50%;transform:translateY(-50%);
+    width:min(36vw,420px);aspect-ratio:1;display:none;
+  }
+  @media(min-width:1100px){.chip{display:block}}
+  .chip .core{
+    position:absolute;inset:24%;border-radius:14px;
+    background:var(--grad);filter:blur(2px);
+    box-shadow:0 0 80px 10px rgba(245,166,35,.5),inset 0 0 40px rgba(255,255,255,.4);
+    animation:pulse 4s ease-in-out infinite;
+  }
+  .chip .ring{position:absolute;border:1px solid var(--card-bd);border-radius:18px}
+  .chip .ring.a{inset:12%}.chip .ring.b{inset:0%;border-style:dashed;opacity:.5;animation:spin 60s linear infinite}
+  @keyframes pulse{0%,100%{filter:blur(2px) brightness(1)}50%{filter:blur(4px) brightness(1.25)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- agenda ---------- */
+  .agenda{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+  .ag-card{
+    border:1px solid var(--card-bd);border-radius:16px;padding:22px 22px 24px;
+    background:linear-gradient(180deg,rgba(255,182,62,.06),rgba(255,182,62,.015));
+    position:relative;overflow:hidden;transition:transform .3s,border-color .3s;
+  }
+  .ag-card:hover{transform:translateY(-4px);border-color:var(--gold)}
+  .ag-card .no{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold-bright);letter-spacing:.1em}
+  .ag-card h3{font-size:19px;font-weight:700;margin:10px 0 6px}
+  .ag-card p{font-size:13.5px;color:var(--muted);line-height:1.5}
+  .ag-card::after{content:"";position:absolute;right:-30px;bottom:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,35,.25),transparent 70%)}
+
+  /* ---------- generic content ---------- */
+  .body{margin-top:6px;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+  .cards{display:grid;gap:18px}
+  .cards.c2{grid-template-columns:repeat(2,1fr)}
+  .cards.c3{grid-template-columns:repeat(3,1fr)}
+  .cards.c4{grid-template-columns:repeat(4,1fr)}
+  .card{
+    border:1px solid var(--card-bd);border-radius:16px;padding:22px 24px;
+    background:linear-gradient(180deg,rgba(255,182,62,.055),rgba(255,182,62,.012));
+    position:relative;
+  }
+  .card .ic{
+    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:15px;
+    background:rgba(245,166,35,.1);border:1px solid var(--card-bd);
+  }
+  /* svg icon system (Lucide-style stroke icons) */
+  .ic-svg{width:23px;height:23px}
+  .ic-svg,.pill-ic,.inline-ic{
+    fill:none;stroke:var(--gold-bright);stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;
+  }
+  .card .ic .ic-svg{filter:drop-shadow(0 0 8px rgba(245,166,35,.45))}
+  .pill-ic{width:16px;height:16px;margin-right:7px;flex-shrink:0}
+  .pill{display:inline-flex;align-items:center}
+  .inline-ic{width:17px;height:17px;vertical-align:-3px;margin-left:4px}
+  .hero-badge .pill-ic{stroke:var(--gold-soft)}
+
+  /* video slide */
+  .video-wrap{
+    position:relative;aspect-ratio:16/9;height:min(50vh,400px);max-width:100%;
+    margin:6px auto 0;border-radius:16px;overflow:hidden;background:#000;
+    border:1px solid var(--card-bd);
+    box-shadow:0 0 60px rgba(245,166,35,.2),inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+  .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video-cap{text-align:center;color:var(--muted);font-size:14.5px;margin-top:4px}
+  .video-cap b{color:var(--ink);font-weight:600}
+  .video-link{
+    align-self:center;display:inline-flex;align-items:center;margin-top:18px;
+    font-size:14px;color:var(--gold-bright);text-decoration:none;
+    border:1px solid var(--card-bd);background:rgba(245,166,35,.06);
+    padding:10px 18px;border-radius:99px;transition:.2s;
+  }
+  .video-link:hover{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+  .video-link:hover .pill-ic{stroke:var(--bg)}
+  .video-links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-self:center;margin-top:18px}
+  .video-links .video-link{margin-top:0}
+  .video-link.primary{background:var(--grad);color:var(--bg);border-color:transparent;font-weight:600}
+  .video-link.primary .pill-ic{stroke:var(--bg)}
+  .video-link.primary:hover{filter:brightness(1.08);background:var(--grad);border-color:transparent}
+  @media(max-width:820px){.video-wrap{height:auto;width:100%}}
+
+  /* discord commands */
+  .cmd-cols{column-count:3;column-gap:18px}
+  .cmd-group{
+    break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 14px;
+    border:1px solid var(--card-bd);border-radius:14px;padding:13px 16px 14px;
+    background:linear-gradient(180deg,rgba(255,182,62,.05),rgba(255,182,62,.012));
+  }
+  .cmd-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:9px;
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--gold-bright);
+  }
+  .cmd-head svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:var(--gold-bright);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .cmd{padding:4px 0;border-top:1px solid rgba(245,166,35,.08);line-height:1.4}
+  .cmd:first-of-type{border-top:0;padding-top:0}
+  .cmd code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--gold-soft);font-weight:600;white-space:nowrap}
+  .cmd span{font-size:11.5px;color:var(--muted)}
+  @media(max-width:820px){.cmd-cols{column-count:2}}
+  @media(max-width:560px){.cmd-cols{column-count:1}}
+  .card h3{font-size:17.5px;font-weight:700;margin-bottom:8px;color:var(--ink)}
+  .card h3 small{display:block;font-weight:500;font-size:12px;color:var(--gold-bright);font-family:'JetBrains Mono',monospace;letter-spacing:.08em;margin-bottom:3px}
+  .card p{font-size:13.8px;color:var(--muted);line-height:1.55}
+  .card ul{list-style:none;display:flex;flex-direction:column;gap:7px;margin-top:4px}
+  .card li{font-size:13.5px;color:var(--muted);line-height:1.5;padding-left:18px;position:relative}
+  .card li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:2px;background:var(--grad)}
+  .card li b{color:var(--ink);font-weight:600}
+
+  /* stat row */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+  .stat{border:1px solid var(--card-bd);border-radius:16px;padding:20px 22px;background:var(--card)}
+  .stat .big{font-size:clamp(30px,3.6vw,46px);font-weight:800;line-height:1}
+  .stat .lab{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.4}
+
+  /* timeline list (workshop topics) */
+  .topics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 28px}
+  .topic{display:flex;align-items:flex-start;gap:14px;padding:9px 0;border-bottom:1px solid rgba(245,166,35,.09)}
+  .topic .tn{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--bg);background:var(--grad);min-width:30px;height:26px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;margin-top:1px}
+  .topic .tt{font-size:14.5px;line-height:1.4}
+  .topic .tt b{font-weight:600}
+  .topic .tt span{color:var(--muted)}
+  .topic.extra .tn{background:rgba(245,166,35,.14);color:var(--gold-bright)}
+
+  /* pills */
+  .pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .pill{border:1px solid var(--card-bd);background:rgba(245,166,35,.06);border-radius:99px;padding:9px 18px;font-size:14px;color:var(--ink)}
+  .pill b{color:var(--gold-bright)}
+
+  /* big timeline (launch) */
+  .tl{position:relative;margin-top:30px;padding-top:30px}
+  .tl .track{position:absolute;left:0;right:0;top:46px;height:2px;background:linear-gradient(90deg,var(--gold-deep),var(--gold-bright),var(--gold-deep))}
+  .tl .row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .tl .wk{position:relative;text-align:center;padding-top:34px}
+  .tl .wk::before{content:"";position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:var(--grad);box-shadow:0 0 14px var(--gold)}
+  .tl .wk .w{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold-bright);letter-spacing:.06em}
+  .tl .wk .d{font-size:13px;color:var(--muted);margin-top:3px}
+  .tl .wk .ph{font-size:13.5px;font-weight:600;margin-top:7px}
+
+  /* closing */
+  #s-end{align-items:center;text-align:center;justify-content:center}
+  #s-end h1{font-size:clamp(40px,7vw,104px)}
+  #s-end .lead{margin:22px auto 0}
+
+  /* ---------- nav chrome ---------- */
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--grad);z-index:30;width:0;transition:width .45s ease;box-shadow:0 0 14px rgba(245,166,35,.6)}
+  .footer{position:fixed;left:clamp(24px,5vw,64px);bottom:22px;z-index:20;display:flex;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;color:var(--muted-2)}
+  .footer .b{color:var(--gold-bright);font-weight:700}
+  .nav{position:fixed;right:clamp(24px,5vw,64px);bottom:18px;z-index:20;display:flex;align-items:center;gap:10px}
+  .nav button{
+    width:42px;height:42px;border-radius:11px;border:1px solid var(--card-bd);
+    background:rgba(245,166,35,.06);color:var(--ink);cursor:pointer;font-size:18px;
+    display:grid;place-items:center;transition:.2s;
+  }
+  .nav button:hover{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+  .nav .count{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);min-width:54px;text-align:center}
+  .nav .count b{color:var(--ink)}
+  .dots{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:11px}
+  .dots button{width:9px;height:9px;border-radius:50%;border:none;background:rgba(245,166,35,.25);cursor:pointer;padding:0;transition:.25s}
+  .dots button.on{background:var(--grad);box-shadow:0 0 10px var(--gold);transform:scale(1.35)}
+
+  .hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:15;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--muted-2);opacity:.8;transition:opacity .6s}
+  .hint.gone{opacity:0}
+
+  @media(max-width:820px){
+    .agenda,.cards.c2,.cards.c3,.cards.c4,.topics,.stats{grid-template-columns:1fr 1fr}
+    .tl .row{grid-template-columns:repeat(3,1fr);gap:20px 10px}
+    .tl .track{display:none}
+    .dots{display:none}
+  }
+  @media(max-width:560px){.agenda,.cards.c2,.cards.c3,.cards.c4,.topics,.stats{grid-template-columns:1fr}}
+
+  /* print -> PDF */
+  @media print{
+    body{overflow:visible}
+    .bg,.nav,.dots,.progress,.hint,.footer{display:none!important}
+    .slide{position:relative;height:100vh;page-break-after:always;opacity:1!important;visibility:visible!important;transform:none!important}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<!-- SVG icon sprite (Lucide-style) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+  <symbol id="i-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol>
+  <symbol id="i-trending-up" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+  <symbol id="i-graduation" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-clipboard-check" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+  <symbol id="i-folders" viewBox="0 0 24 24"><path d="M20 17a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.9a2 2 0 0 1-1.69-.9l-.81-1.2a2 2 0 0 0-1.67-.9H8a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2Z"/><path d="M2 8v11a2 2 0 0 0 2 2h14"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="i-play-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></symbol>
+  <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></symbol>
+</svg>
+
+<div class="bg" aria-hidden="true">
+  <div class="grid"></div>
+  <svg class="traces" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <g stroke="rgba(245,166,35,.22)" stroke-width="1.5" fill="none">
+      <path d="M0,120 H280 L320,160 H560"/><circle cx="560" cy="160" r="4" fill="rgba(245,166,35,.5)" stroke="none"/>
+      <path d="M1600,760 H1320 L1280,720 H980"/><circle cx="980" cy="720" r="4" fill="rgba(245,166,35,.5)" stroke="none"/>
+      <path d="M1600,260 H1460 L1420,300 V420"/><circle cx="1420" cy="420" r="4" fill="rgba(245,166,35,.5)" stroke="none"/>
+      <path d="M120,900 V700 L160,660 H300"/>
+    </g>
+  </svg>
+</div>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide" id="s-title">
+    <div class="hero-wrap">
+      <div class="chip" aria-hidden="true"><div class="ring b"></div><div class="ring a"></div><div class="core"></div></div>
+      <div class="hero-badge r"><svg class="pill-ic"><use href="#i-zap"/></svg> Build Cohort · 2026</div>
+      <h1 class="r"><span class="gold">AI20K</span><br>Cohort 2</h1>
+      <div class="title-sub r">Tổng Quan Chương Trình</div>
+      <p class="title-desc r">6 tuần Sprint xây dựng sản phẩm AI thực chiến — từ ý tưởng đến Demo Day, dẫn dắt bởi đội ngũ Mentors và một hệ thống vận hành tự động hóa.</p>
+      <div class="title-meta r">
+        <div class="m"><b class="gold">6 tuần</b><span>Sprint</span></div>
+        <div class="m"><b class="gold">~500</b><span>Học viên</span></div>
+        <div class="m"><b class="gold">~167</b><span>Teams</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. AGENDA -->
+  <section class="slide" id="s-agenda">
+    <div class="kicker r"><span class="dot"></span> Nội dung</div>
+    <h2 class="r">Bản đồ chương trình</h2>
+    <div class="rule r"></div>
+    <div class="agenda">
+      <div class="ag-card r"><div class="no">01</div><h3>Tổng Quan</h3><p>Quy mô, lịch trình, team & chọn đề tài.</p></div>
+      <div class="ag-card r"><div class="no">02</div><h3>Weekly Runbook</h3><p>Chương trình hàng tuần: workshop, mentoring, office hours.</p></div>
+      <div class="ag-card r"><div class="no">03</div><h3>Support</h3><p>Bot tự động, standup hàng ngày, hệ thống ticket, mentors và BTC.</p></div>
+      <div class="ag-card r"><div class="no">04</div><h3>Đánh Giá & Demo Day</h3><p>Deliverables và cấu trúc Demo Day.</p></div>
+      <div class="ag-card r"><div class="no">05</div><h3>Project Allocation</h3><p>Danh mục đề bài và phạm vi.</p></div>
+      <div class="ag-card r"><div class="no">06</div><h3>Launch Readiness</h3><p>Master Timeline từ Tuần 1 đến Demo Day.</p></div>
+    </div>
+  </section>
+
+  <!-- 3. SECTION 01 - OVERVIEW STATS + SCHEDULE -->
+  <section class="slide" id="s-01a">
+    <div class="kicker r"><span class="num">01</span> Tổng Quan Chương Trình</div>
+    <h2 class="r">Quy mô & nhịp vận hành</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="stats r">
+        <div class="stat"><div class="big gold">6 tuần</div><div class="lab">Chương trình Sprint</div></div>
+        <div class="stat"><div class="big gold">~500</div><div class="lab">Học viên tham gia</div></div>
+        <div class="stat"><div class="big gold">~167</div><div class="lab">Teams · 3 người/team</div></div>
+        <div class="stat"><div class="big gold">~17</div><div class="lab">nhóm</div></div>
+      </div>
+      <div class="cards c2 r">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-calendar"/></svg></div>
+          <h3>Lịch trình cơ bản hàng tuần</h3>
+          <ul>
+            <li><b>2 buổi Workshop</b> — tối Thứ 5 & Chủ Nhật (tăng cường thêm ở những tuần sau)</li>
+            <li><b>Office Hours</b> — thường tối Thứ 2 / Thứ 6 (tăng cường thêm ở những tuần sau)</li>
+            <li><b>2 buổi Mentoring Duty</b> — tối Thứ 4 & Thứ 7 (kiểm tra tiến độ, chấm điểm, và tháo gỡ khó khăn)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-sunrise"/></svg></div>
+          <h3>Từ Tuần 4 trở đi</h3>
+          <ul>
+            <li>Bổ sung khung giờ <b>Build Hours</b> vào buổi chiều</li>
+            <li>Tập trung Optimize, Deploy & chuẩn bị Demo</li>
+            <li>Tăng tốc hoàn thiện sản phẩm cuối</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SECTION 01 - TEAM FORMATION -->
+  <section class="slide" id="s-01b">
+    <div class="kicker r"><span class="num">01</span> Tổng Quan Chương Trình</div>
+    <h2 class="r">Hình thành team & chọn đề tài</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="cards c2 r">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-users"/></svg></div>
+          <h3>Quy trình thành lập team</h3>
+          <ul>
+            <li>BTC chia teams (không được thay đổi)</li>
+            <li>Team chọn 1 đề bài từ <b>Project Bank</b> (tối đa 2 teams/đề) qua bot Discord dùng tag <b>/exam available</b> & <b>/exam pick</b></li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-tag"/></svg></div>
+          <h3>Naming Convention</h3>
+          <p>Mọi nền tảng phải khớp theo số thứ tự của team/ cá nhân:</p>
+          <ul>
+            <li>GitHub Repo <b>CX-App-042</b></li>
+            <li>Discord channel <b>#team-042</b></li>
+            <li>Deploy URL Cohort 2 → <b>c2-app-042.io.vn</b></li>
+            <li>Discord Display Name → <b>Nguyễn Văn A - 2A202601000 (không đúng tên sẽ bị kick)</b></li>
+            <li>Zoom Name → <b>Nguyễn Văn A - 2A202601000</b></li>
+            
+          </ul>
+        </div>
+      </div>
+      <div class="card r" style="margin-top:18px">
+        <div class="ic"><svg class="ic-svg"><use href="#i-life-buoy"/></svg></div>
+        <h3>Mô hình hỗ trợ 5 lớp</h3>
+        <div class="pills">
+          <span class="pill"><b>1.</b> Bot tự động</span>
+          <span class="pill">→</span>
+          <span class="pill"><b>2.</b> Tickets</span>
+          <span class="pill">→</span>
+          <span class="pill"><b>3.</b> Peer Support (hỏi đáp chéo)</span>
+          <span class="pill">→</span>
+          <span class="pill"><b>4.</b> Mentor phụ trách</span>
+          <span class="pill">→</span>
+          <span class="pill"><b>5.</b> BTC quyết định cuối cùng</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. SECTION 02 - RUNBOOK -->
+  <section class="slide" id="s-02a">
+    <div class="kicker r"><span class="num">02</span> Weekly Runbook</div>
+    <h2 class="r">Chương trình hàng tuần</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="cards c2 r">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-trending-up"/></svg></div>
+          <h3><small>GIAI ĐOẠN CHƯƠNG TRÌNH</small>Hai giai đoạn chính</h3>
+          <ul>
+            <li><b>GĐ1 · Tuần 1–3</b> — Phân tích, thiết kế & build nền tảng cốt lõi (Core). Hoạt động chỉ vào buổi tối và cuối tuần.</li>
+            <li><b>GĐ2 · Tuần 4–6</b> — Optimize, Deploy & Demo. Thêm các workshop và office hours.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-graduation"/></svg></div>
+          <h3><small>CẤU TRÚC Mentoring · 20:00</small>Mentoring Breakout Room</h3>
+          <ul>
+            <li>2 hrs/buổi</li>
+            <li>Mỗi Mentor phụ trách cố định nhóm teams suốt 6 tuần</li>
+            <li>Tổng hỗ trợ ~<b>13–16 tiếng/tuần</b></li>
+            <li>Mentoring 1-1 với Mentor → <b>tạo ticket</b> hoặc trao đổi với Mentors trực tiếp trong Discord</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card r" style="margin-top:18px">
+        <div class="ic"><svg class="ic-svg"><use href="#i-code"/></svg></div>
+        <h3><small>CẤU TRÚC WORKSHOP · 20:00 – 21:30</small>Học theo chủ đề — 3 định dạng</h3>
+        <div class="pills">
+          <span class="pill"><b>A.</b> Live Coding</span>
+          <span class="pill"><b>B.</b> Case Study</span>
+          <span class="pill"><b>C.</b> Bring Your Own Code (BYOC)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. SECTION 02 - WORKSHOP SCHEDULE -->
+  <section class="slide" id="s-02b">
+    <div class="kicker r"><span class="num">02</span> Weekly Runbook</div>
+    <h2 class="r">Lịch trình Workshop <span style="font-weight:500;color:var(--muted);font-size:.55em">~14 buổi (bổ sung thêm ở 3 tuần cuối)</span></h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="topics r">
+        <div class="topic"><span class="tn">01</span><span class="tt"><b>Kick-off</b> <span>— Chia nhóm, chọn đề bài, khởi tạo repo</span></span></div>
+        <div class="topic"><span class="tn">02</span><span class="tt"><b>Problem → MVP Canvas</b></span></div>
+        <div class="topic"><span class="tn">03</span><span class="tt"><b>Project management & team cowork</b> <span>— soft skills, rules, xử lý xung đột</span></span></div>
+        <div class="topic"><span class="tn">04</span><span class="tt"><b>Vibe coding 101</b> <span>by team</span></span></div>
+        <div class="topic"><span class="tn">05</span><span class="tt"><b>AI Product Design</b> <span>— UX patterns & prototyping</span></span></div>
+        <div class="topic"><span class="tn">06</span><span class="tt"><b>Tư duy Product</b> <span>cho người làm sản phẩm</span></span></div>
+        <div class="topic"><span class="tn">07</span><span class="tt"><b>First Working Agent</b> <span>— LLM + tool calling</span></span></div>
+        <div class="topic"><span class="tn">08</span><span class="tt"><b>RAG Pipeline</b> <span>— Ingestion, chunking, retrieval</span></span></div>
+        <div class="topic"><span class="tn">09</span><span class="tt"><b>Multi-Step Agent</b> <span>— Plan → execute → validate</span></span></div>
+        <div class="topic"><span class="tn">10</span><span class="tt"><b>MCP & Multi-Agent</b> <span>— Protocol & orchestration</span></span></div>
+        <div class="topic"><span class="tn">11</span><span class="tt"><b>Optimize & Evaluate</b> <span>— Quality, latency, cost</span></span></div>
+        <div class="topic"><span class="tn">12</span><span class="tt"><b>Guardrails & Reliability</b> <span>— Safety & error handling</span></span></div>
+        <div class="topic"><span class="tn">13</span><span class="tt"><b>Go Live</b> <span>— CI/CD, cloud deployment, observability</span></span></div>
+        <div class="topic"><span class="tn">14</span><span class="tt"><b>The Pitch</b> <span>— Product narrative & investor demo</span></span></div>
+        <div class="topic extra"><span class="tn">+</span><span class="tt"><b>Data pipeline</b> <span>— chủ đề bổ sung</span></span></div>
+        <div class="topic extra"><span class="tn">+</span><span class="tt"><b>Recommendation</b> <span>— chủ đề bổ sung</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. SECTION 03 - SUPPORT & OPS -->
+  <section class="slide" id="s-03">
+    <div class="kicker r"><span class="num">03</span> Support, Automation & Ops Signals</div>
+    <h2 class="r">Hệ thống hỗ trợ & tự động hóa</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="cards c3 r">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-bot"/></svg></div>
+          <h3><small>KUTEBOT</small>Hệ thống Bot</h3>
+          <ul>
+            <li>Nhắc standup, deadline, theo dõi độ active của học viên</li>
+            <li>Cảnh báo team gặp rủi ro (at-risk)</li>
+            <li>Slash commands: <b>/ticket /daily /weekly /rank /leaderboard</b></li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-sun"/></svg></div>
+          <h3><small>TRƯỚC 10:00 SÁNG</small>Standup hàng ngày</h3>
+          <ul>
+            <li>Cập nhật: Hôm qua / Hôm nay / Blocker</li>
+            <li>Miss <b>3 ngày</b> → cảnh báo tự động</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7b. DISCORD COMMANDS -->
+  <section class="slide" id="s-discord">
+    <div class="kicker r"><svg class="pill-ic"><use href="#i-bot"/></svg> KuteBot · Discord</div>
+    <h2 class="r">Discord Commands <span style="font-weight:500;color:var(--muted);font-size:.5em">gõ <code style="font-family:'JetBrains Mono',monospace;color:var(--gold-bright)">/</code> trong Discord để xem gợi ý</span></h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="cmd-cols r">
+
+        <div class="cmd-group">
+          <div class="cmd-head"><svg><use href="#i-calendar"/></svg> Báo cáo</div>
+          <div class="cmd"><code>/daily</code> <span>Nộp daily stand-up (trong thread team)</span></div>
+          <div class="cmd"><code>/weekly submit</code> <span>Nộp báo cáo tuần cho team</span></div>
+          <div class="cmd"><code>/weekly view</code> <span>Xem báo cáo tuần của team</span></div>
+          <div class="cmd"><code>/weekly update</code> <span>Chỉnh sửa báo cáo tuần đã nộp</span></div>
+          <div class="cmd"><code>/weekly history</code> <span>Xem lịch sử nộp báo cáo tuần</span></div>
+          <div class="cmd"><code>/weekly suggest</code> <span>Gợi ý "Done" từ daily standup trong tuần</span></div>
+        </div>
+
+        <div class="cmd-group">
+          <div class="cmd-head"><svg><use href="#i-book-open"/></svg> Chọn đề · Exam</div>
+          <div class="cmd"><code>/exam available</code> <span>Kiểm tra mã đề còn trống</span></div>
+          <div class="cmd"><code>/exam pick</code> <span>Chọn đề thi cho team</span></div>
+          <div class="cmd"><code>/exam view</code> <span>Xem đề thi team đang chọn</span></div>
+        </div>
+
+        <div class="cmd-group">
+          <div class="cmd-head"><svg><use href="#i-gauge"/></svg> Gate</div>
+          <div class="cmd"><code>/gate list</code> <span>Liệt kê các gate đang active</span></div>
+          <div class="cmd"><code>/gate status</code> <span>Xem trạng thái gate của team</span></div>
+          <div class="cmd"><code>/gate submit</code> <span>Nộp gate cho team</span></div>
+          <div class="cmd"><code>/gate view</code> <span>Chi tiết 1 gate (deliverables, deadline)</span></div>
+        </div>
+
+        <div class="cmd-group">
+          <div class="cmd-head"><svg><use href="#i-users"/></svg> Cá nhân & Team</div>
+          <div class="cmd"><code>/myprofile</code> <span>AI Literacy profile (Strengths, Issues, Suggestions)</span></div>
+          <div class="cmd"><code>/myteam members</code> <span>Danh sách thành viên team</span></div>
+        </div>
+
+        <div class="cmd-group">
+          <div class="cmd-head"><svg><use href="#i-life-buoy"/></svg> Hỗ trợ · Ticket</div>
+          <div class="cmd"><code>/ticket create</code> <span>Tạo ticket hỗ trợ</span></div>
+          <div class="cmd"><code>/ticket close</code> <span>Đóng ticket thread hiện tại</span></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. SECTION 04 - QUALITY & DEMO DAY -->
+  <section class="slide" id="s-04">
+    <div class="kicker r"><span class="num">04</span> Quality Control & Demo Day</div>
+    <h2 class="r">Kiểm soát chất lượng & Demo Day</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="cards c2 r">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-gauge"/></svg></div>
+          <h3>3 Gates</h3>
+          <p>Gate <b>không chặn</b> team đi tiếp — dùng để đánh giá tiến độ mỗi team và giúp Mentor đề xuất hướng hỗ trợ khẩn cấp khi chưa đạt chuẩn.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-clipboard-check"/></svg></div>
+          <h3>Rubric chấm điểm</h3>
+          <ul>
+            <li>Xác định bài toán & giải quyết vấn đề người dùng</li>
+            <li>Hoàn thiện sản phẩm · Kỹ năng AI</li>
+            <li>Triển khai hạ tầng · Chất lượng Code</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cards c2 r" style="margin-top:18px">
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-package"/></svg></div>
+          <h3>10 Deliverables bắt buộc</h3>
+          <div class="pills">
+            <span class="pill">Source code</span><span class="pill">README.md</span><span class="pill">Live URL</span>
+            <span class="pill">Video Demo</span><span class="pill">Sơ đồ kiến trúc</span><span class="pill">Bằng chứng kiểm thử</span>
+            <span class="pill">Nhật ký tuần</span><span class="pill">Pitch Deck</span><span class="pill">Worklog</span><span class="pill">AI Log (Prompts)</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ic"><svg class="ic-svg"><use href="#i-trophy"/></svg></div>
+          <h3>Cấu trúc Demo Day · 2 ngày</h3>
+          <ul>
+            <li><b>Ngày 1</b> — BGK chấm offline ~167 teams → chọn Shortlist</li>
+            <li><b>Ngày 2</b> — Shortlist Pitching trực tiếp: <b>5 phút pitch + Demo + Q&A</b></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8b. VIDEO — SETUP AI LOG -->
+  <section class="slide" id="s-ailog">
+    <div class="kicker r"><svg class="pill-ic"><use href="#i-play-circle"/></svg> Hướng dẫn · Resource</div>
+    <h2 class="r">Setup <span class="gold">AI Log</span></h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <p class="video-cap r"><b>AI Log (Lịch sử Prompts)</b> là 1 trong 10 deliverables bắt buộc — xem video hướng dẫn thiết lập:</p>
+      <div class="video-wrap r">
+        <iframe src="https://drive.google.com/file/d/1q8P0gRA4yBq4t9kZ_nQxYvkoIKF5ebtH/preview" allow="autoplay; fullscreen" allowfullscreen loading="lazy" title="Video hướng dẫn setup AI Log"></iframe>
+      </div>
+      <div class="video-links r">
+        <a class="video-link primary" href="https://phoenix.note.transformerlabs.ai/invite/2ESYVCDgupFApHMpm2k1pQ7AtOa2caD7t5ooHJXbfE0" target="_blank" rel="noopener"><svg class="pill-ic"><use href="#i-user-plus"/></svg> Nhận lời mời · Setup AI Log</a>
+        <a class="video-link" href="https://drive.google.com/file/d/1q8P0gRA4yBq4t9kZ_nQxYvkoIKF5ebtH/view?usp=sharing" target="_blank" rel="noopener"><svg class="pill-ic"><use href="#i-external-link"/></svg> Mở video trên Google Drive</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. SECTION 05 - PROJECT ALLOCATION -->
+  <section class="slide" id="s-05">
+    <div class="kicker r"><span class="num">05</span> Project Allocation</div>
+    <h2 class="r">Phân bổ dự án</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <div class="card r">
+        <div class="ic"><svg class="ic-svg"><use href="#i-folders"/></svg></div>
+        <h3>Hệ thống đề bài đa dạng danh mục</h3>
+        <div class="pills">
+          <span class="pill"><svg class="pill-ic"><use href="#i-graduation"/></svg>Giáo dục, Đại học</span>
+          <span class="pill"><svg class="pill-ic"><use href="#i-book-open"/></svg>K-12</span>
+          <span class="pill"><svg class="pill-ic"><use href="#i-globe"/></svg>EdTech Platform</span>
+          <span class="pill"><svg class="pill-ic"><use href="#i-building"/></svg>Security</span>
+          <span class="pill"><svg class="pill-ic"><use href="#i-settings"/></svg>Vận hành Giáo dục</span>
+          <span class="pill"><svg class="pill-ic"><use href="#i-rocket"/></svg>Robotics</span>
+		  <span class="pill"><svg class="pill-ic"><use href="#i-rocket"/></svg>Bất động sản</span>
+		  <span class="pill"><svg class="pill-ic"><use href="#i-rocket"/></svg>Du lịch nghỉ dưỡng</span>
+		  <span class="pill"><svg class="pill-ic"><use href="#i-rocket"/></svg>Đi lại thông minh</span>
+        </div>
+      </div>
+      <div class="card r" style="margin-top:18px;text-align:center;padding:34px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;color:var(--gold-bright);margin-bottom:12px">NGUYÊN TẮC CỐT LÕI</div>
+        <div style="font-size:clamp(22px,3vw,38px);font-weight:800;line-height:1.2" class="gold">"Scope down sớm tốt hơn scope creep"</div>
+        <p style="margin-top:12px;color:var(--muted)">Giới hạn phạm vi sản phẩm sớm thay vì để nó lan man.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. SECTION 06 - LAUNCH READINESS -->
+  <section class="slide" id="s-06">
+    <div class="kicker r"><span class="num">06</span> Launch Readiness</div>
+    <h2 class="r">Master Timeline</h2>
+    <div class="rule r"></div>
+    <div class="body">
+      <p class="lead r">Hành trình 6 tuần — từ Kick-off đến Demo Day.</p>
+      <div class="tl r">
+        <div class="track"></div>
+        <div class="row">
+          <div class="wk"><div class="w">TUẦN 1</div><div class="d">28/05/2026</div><div class="ph">Kick-off & Xác định phân tích đề bài (khuyến khích tìm và làm việc với khách hàng tiềm năng từ sớm để hiểu pain points và có giải pháp đúng nhu cầu thực tế )</div></div>
+          <div class="wk"><div class="w">TUẦN 2</div><div class="d">GĐ1</div><div class="ph">Build nền tảng</div></div>
+          <div class="wk"><div class="w">TUẦN 3</div><div class="d">GĐ1</div><div class="ph">Core hoàn thiện</div></div>
+          <div class="wk"><div class="w">TUẦN 4</div><div class="d">GĐ2</div><div class="ph">Optimize + Build Hours</div></div>
+          <div class="wk"><div class="w">TUẦN 5</div><div class="d">GĐ2</div><div class="ph">Deploy & Onboard users</div></div>
+          <div class="wk"><div class="w">TUẦN 6</div><div class="d">09/07/2026</div><div class="ph gold">Demo Day <svg class="inline-ic"><use href="#i-trophy"/></svg></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. CLOSING -->
+  <section class="slide" id="s-end">
+    <div class="hero-badge r">AI20K · Cohort 2</div>
+    <h1 class="r">Let's <span class="gold">build</span>.</h1>
+    <p class="lead r">6 tuần. ~167 teams. Một sản phẩm AI thực chiến.<br>Scope down sớm — ship thật — pitch lớn.</p>
+  </section>
+
+</div>
+
+<!-- chrome -->
+<div class="footer"><span class="b">AI20K</span> · Cohort 2 — Tổng Quan</div>
+<div class="dots" id="dots"></div>
+<div class="nav">
+  <button id="prev" aria-label="Slide trước">‹</button>
+  <span class="count" id="count"><b>1</b> / 13</span>
+  <button id="next" aria-label="Slide sau">›</button>
+</div>
+<div class="hint" id="hint">← → di chuyển · F toàn màn hình</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dotsWrap=document.getElementById('dots');
+  const progress=document.getElementById('progress');
+  const countEl=document.getElementById('count');
+  const hint=document.getElementById('hint');
+  let i=0;
+
+  slides.forEach((_,k)=>{
+    const b=document.createElement('button');
+    b.setAttribute('aria-label','Slide '+(k+1));
+    b.addEventListener('click',()=>go(k));
+    dotsWrap.appendChild(b);
+  });
+  const dots=[...dotsWrap.children];
+
+  function go(n){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    slides[i].classList.remove('active');
+    slides[i].classList.toggle('prev',n>i);
+    i=n;
+    slides.forEach((s,k)=>{if(k!==i)s.classList.remove('active')});
+    slides[i].classList.add('active');
+    slides[i].classList.remove('prev');
+    dots.forEach((d,k)=>d.classList.toggle('on',k===i));
+    progress.style.width=((i)/(slides.length-1)*100)+'%';
+    countEl.innerHTML='<b>'+(i+1)+'</b> / '+slides.length;
+  }
+
+  function next(){go(i+1)}
+  function prev(){go(i-1)}
+  document.getElementById('next').onclick=next;
+  document.getElementById('prev').onclick=prev;
+
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();next()}
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev()}
+    else if(e.key==='Home'){go(0)}
+    else if(e.key==='End'){go(slides.length-1)}
+    else if(e.key.toLowerCase()==='f'){
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+    hint.classList.add('gone');
+  });
+
+  // touch swipe
+  let tx=0;
+  addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+  addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>50){dx<0?next():prev()}
+  },{passive:true});
+
+  setTimeout(()=>hint.classList.add('gone'),5200);
+  go(0);
+</script>
+</body>
+</html>
